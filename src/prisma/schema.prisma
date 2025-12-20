@@ -1,0 +1,186 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id              Int             @id @default(autoincrement())
+  name            String?
+  email           String          @unique
+  password        String?
+  profilePicture  String?
+  subscribed      Boolean         @default(false)
+
+  servers         Server[]
+  apiKeys         ApiKey[]
+
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+
+  @@map("users")
+}
+
+
+
+
+model ApiKey {
+  id          Int                 @id @default(autoincrement())
+  key         String              @unique
+  name        String?
+  revoked     Boolean             @default(false)
+
+  user        User                @relation(fields: [userId], references: [id])
+  userId      Int
+
+  servers     Server[]
+
+  lastUsedAt  DateTime?
+  created_at  DateTime            @default(now())
+
+  @@map("api_keys")
+}
+
+
+
+
+
+model Server {
+  id            Int               @id @default(autoincrement())
+  uuid          String            @unique
+  name          String
+  environment   String            // production, staging, dev
+  hostname      String
+  os            String?
+  arch          String?
+
+  user          User              @relation(fields: [userId], references: [id])
+  userId        Int
+
+  apiKey        ApiKey            @relation(fields: [apiKeyId], references: [id])
+  apiKeyId      Int
+
+  lastSeenAt    DateTime?
+  agentVersion  String?
+
+  snapshots     ServerSnapshot[]
+  metrics       ServerMetric[]
+  containers    Container[]
+  events        Event[]
+
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @updatedAt
+
+  @@map("servers")
+}
+
+
+
+
+model ServerSnapshot {
+  id              Int      @id @default(autoincrement())
+
+  server          Server   @relation(fields: [serverId], references: [id])
+  serverId        Int      @unique
+
+  uptimeSeconds   Int
+  cpuCores        Int
+  cpuPercent      Float
+
+  memoryTotalMB   Int
+  memoryUsedMB    Int
+  memoryPercent   Float
+
+  diskTotalGB     Int
+  diskUsedGB      Int
+  diskPercent     Float
+
+  containerCount  Int
+
+  updated_at      DateTime @updatedAt
+
+  @@map("server_snapshots")
+}
+
+
+
+
+
+model ServerMetric {
+  id          Int                 @id @default(autoincrement())
+
+  server      Server              @relation(fields: [serverId], references: [id])
+  serverId    Int
+
+  interval    String              // "1m", "5m", "1h"
+  cpuAvg      Float
+  memoryAvg   Float
+  diskAvg     Float
+
+  fromTime    DateTime
+  toTime      DateTime
+
+  created_at  DateTime            @default(now())
+
+  @@index([serverId, interval, fromTime])
+  @@map("server_metrics")
+}
+
+
+
+
+
+model Container {
+  id              Int      @id @default(autoincrement())
+
+  // Identity
+  containerId     String
+  name            String
+  image           String
+  createdAt       DateTime
+
+  // Runtime state
+  state           String
+  status          String
+
+  // Resource usage (snapshot)
+  cpuPercent      Float?
+  memoryUsageMB   Int?
+  memoryLimitMB   Int?
+  networkRxMB     Float?
+  networkTxMB     Float?
+
+  // Liveness
+  lastSeenAt      DateTime
+
+  // Relations
+  server          Server   @relation(fields: [serverId], references: [id])
+  serverId        Int
+
+  @@unique([serverId, containerId])
+  @@map("containers")
+}
+
+
+
+
+
+model Event {
+  id          Int                 @id @default(autoincrement())
+  type        String              // CRASH, RESTART, HIGH_CPU
+  severity    String              // info, warning, critical
+  message     String
+
+  server      Server              @relation(fields: [serverId], references: [id])
+  serverId    Int
+
+  created_at  DateTime            @default(now())
+
+  @@index([serverId, created_at])
+  @@map("events")
+}

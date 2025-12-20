@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: pulse-postgres
+    environment:
+      POSTGRES_USER: pulse
+      POSTGRES_PASSWORD: pulsepass
+      POSTGRES_DB: pulse
+    ports:
+      - "5434:5432"
+    volumes:
+      - pulse_pgdata:/var/lib/postgresql/data
+
+volumes:
+  pulse_pgdata:

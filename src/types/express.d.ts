@@ -1,5 +1,5 @@
 //types/express.d.ts
-import { Server, ServerSnapshot, User } from "../generated/prisma/client";
+import { Container, Server, ServerSnapshot, User } from "../generated/prisma/client";
 
 declare global {
   namespace Express {
@@ -7,6 +7,7 @@ declare global {
       user?: User;
       server?:Server;
       serverSnapshot?:ServerSnapshot
+      
     }
   }
 }

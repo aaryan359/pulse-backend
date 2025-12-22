@@ -18,7 +18,7 @@ import agentRoute from "./routes/agent.routes";
 
 const app: Application = express();
 
-
+    console.log(" START api ")
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
@@ -35,7 +35,7 @@ app.use(
 )
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000, 
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
@@ -55,7 +55,7 @@ app.get("/health", (_req: Request, res: Response) => {
 })
 
 
-
+    console.log(" TILL HERE  ")
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/apikey", apiRoute);
@@ -76,11 +76,11 @@ app.use((_req: Request, res: Response) => {
 
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(err);
-  return ApiResponse.error(res, {
-    message: err.message || "Internal Server Error",
-    statusCode: err.statusCode || 500,
-  });
+    console.error(err);
+      return ApiResponse.error(res, {
+        message: err.message || "Internal Server Error",
+        statusCode: err.statusCode || 500,
+      });
 });
 
 

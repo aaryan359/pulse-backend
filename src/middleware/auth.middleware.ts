@@ -11,7 +11,6 @@ export const authMiddleware = async (  req: Request,  res: Response,  next: Next
 
   try {
 
-
         const authHeader = req.headers.authorization;
 
 
@@ -24,6 +23,8 @@ export const authMiddleware = async (  req: Request,  res: Response,  next: Next
 
 
         const [scheme, token] = authHeader.split(" ");
+
+
 
         if (scheme !== "Bearer" || !token) {
             return ApiResponse.error(res, {

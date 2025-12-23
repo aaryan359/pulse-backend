@@ -50,11 +50,11 @@ model Server {
   os          String?
   arch        String?
 
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+  user        User @relation(fields: [userId], references: [id])
+  userId      Int
 
-  apiKey   ApiKey @relation(fields: [apiKeyId], references: [id])
-  apiKeyId Int
+  apiKey      ApiKey @relation(fields: [apiKeyId], references: [id])
+  apiKeyId    Int
 
   lastSeenAt   DateTime?
   agentVersion String?

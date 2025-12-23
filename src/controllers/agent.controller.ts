@@ -12,6 +12,8 @@ import { storeAggregatedMetric } from "../services/metric.service";
 
 
 export const registerAgent = async (req: Request, res: Response) => {
+
+       
         const apiKey = (req as any).apiKey;
         const user = req.user!;
 

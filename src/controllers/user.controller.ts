@@ -181,3 +181,32 @@ export const checkAuthentic = async (req: Request, res: Response) => {
     });
 
 } 
+
+
+
+export const getCurrentUser = async (req: Request, res: Response) => {
+  const user = req.user;
+
+  if (!user) {
+    return ApiResponse.error(res, {
+      message: "Unauthorized",
+      statusCode: 401,
+    });
+  }
+
+  const data = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      subscribed: true,
+      created_at: true,
+      updated_at: true,
+    },
+  });
+
+  return ApiResponse.success(res, {
+    data,
+  });
+};

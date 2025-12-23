@@ -1,28 +1,33 @@
-
 import "dotenv/config";
 import express, {
-    Application,
-    Request,
-    Response,
-    NextFunction,
+  Application,
+  Request,
+  Response,
+  NextFunction,
 } from "express";
 import helmet from "helmet";
-
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import http from "http";
+
 import ApiResponse from "./utils/ApiResponse";
 import userRouter from "./routes/user.routes";
 import apiRoute from "./routes/apikey.routes";
 import agentRoute from "./routes/agent.routes";
+import statsRoute from "./routes/stats.route";
 
+import { initWebSocket } from "./ws"; 
 
 const app: Application = express();
 
-    console.log(" START api ")
+
+
+/* -------------------- Middleware -------------------- */
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-
 app.use(helmet());
+
+
 
 app.use(
   cors({
@@ -32,38 +37,56 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
-)
+);
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
+
+
+app.use(
+  "/api/v1/auth",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+  })
+);
+
+
+app.use(
+  "/api/v1/stats",
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 10000,
+  })
+);
+
+/* ---------- AGENT ---------- */
+app.use(
+  "/api/v1/agent",
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 5000,
+    keyGenerator: (req) => req.headers["x-api-key"] as string,
+  })
+);
+
+
+/* -------------------- Health -------------------- */
+app.get("/health", (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+  });
 });
 
-app.use(limiter);
 
-
-
-
-
-app.get("/health", (_req: Request, res: Response) => {
-    res.status(200).json({
-          status: "healthy",
-          timestamp: new Date().toISOString(),
-    });
-})
-
-
-    console.log(" TILL HERE  ")
-
+/* -------------------- Routes -------------------- */
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/apikey", apiRoute);
-app.use("/api/v1/agent",agentRoute)
+app.use("/api/v1/agent", agentRoute);
+app.use("/api/v1/stats", statsRoute);
 
 
 
-
+/* -------------------- 404 -------------------- */
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
@@ -71,24 +94,23 @@ app.use((_req: Request, res: Response) => {
   });
 });
 
-
-
-
-
+/* -------------------- Error Handler -------------------- */
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    console.error(err);
-      return ApiResponse.error(res, {
-        message: err.message || "Internal Server Error",
-        statusCode: err.statusCode || 500,
-      });
+  console.error(err);
+  return ApiResponse.error(res, {
+    message: err.message || "Internal Server Error",
+    statusCode: err.statusCode || 500,
+  });
 });
 
-
-
-
-
+/* -------------------- Server + WS -------------------- */
 const PORT = Number(process.env.PORT) || 3000;
 
-app.listen(PORT, () => {
-  console.log(` Server running on port ${PORT}`);
+const httpServer = http.createServer(app);
+
+//INIT WEBSOCKET HERE
+initWebSocket(httpServer);
+
+httpServer.listen(PORT, () => {
+  console.log(`🚀 HTTP + WS server running on port ${PORT}`);
 });

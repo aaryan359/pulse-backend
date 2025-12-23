@@ -1,5 +1,6 @@
 import { prisma } from "../config/db.config";
 import { createEvent } from "../services/event.service";
+import { getWebSocket, initWebSocket } from "../ws";
 
 
 export async function updateSnapshot(
@@ -8,6 +9,16 @@ export async function updateSnapshot(
   containerCount: number,
   timestamp: Date
 ) {
+  console.log("updateSnapshot serverId:", serverId);
+  const now = new Date();
+
+  await prisma.server.update({
+    where: { id: serverId },
+    data: {
+      lastSeenAt: now,
+    },
+  });
+
   const snapshot = await prisma.serverSnapshot.upsert({
     where: { serverId },
     update: {
@@ -38,6 +49,10 @@ export async function updateSnapshot(
     },
   });
 
+
+
+  getWebSocket().broadcastSnapshot(serverId, snapshot);
+
   // HIGH CPU
   if (system.cpu_percent > 90) {
     await createEvent({
@@ -57,6 +72,7 @@ export async function updateSnapshot(
       message: `Memory usage is ${system.memory_percent.toFixed(2)}%`,
     });
   }
+
 
   return snapshot;
 }

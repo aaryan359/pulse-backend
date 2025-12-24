@@ -98,7 +98,7 @@ export const ingestMetrics = async (req: Request, res: Response) => {
         });
 
 
-        console.log(" server from database", server);
+        
 
 
         if (!server) {

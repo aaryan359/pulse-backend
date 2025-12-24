@@ -1,6 +1,8 @@
+import { realtimeWS } from "..";
 import { prisma } from "../config/db.config";
 import { createEvent } from "../services/event.service";
-import { getWebSocket, initWebSocket } from "../ws";
+import { getRealtimeManager } from "../ws/snapshotManager";
+
 
 
 export async function updateSnapshot(
@@ -9,7 +11,7 @@ export async function updateSnapshot(
   containerCount: number,
   timestamp: Date
 ) {
-  console.log("updateSnapshot serverId:", serverId);
+
   const now = new Date();
 
   await prisma.server.update({
@@ -51,10 +53,14 @@ export async function updateSnapshot(
 
 
 
-  getWebSocket().broadcastSnapshot(serverId, snapshot);
+  try {
+    getRealtimeManager().broadcastSnapshot(serverId, snapshot);
+  } catch (err) {
+    console.warn("Realtime WS not ready yet, skipping broadcast");
+  }
 
   // HIGH CPU
-  if (system.cpu_percent > 90) {
+  if (system.cpu_percent > 10) {
     await createEvent({
       serverId,
       type: "HIGH_CPU",
@@ -64,12 +70,21 @@ export async function updateSnapshot(
   }
 
   // HIGH MEMORY
-  if (system.memory_percent > 90) {
+  if (system.memory_percent > 50) {
     await createEvent({
       serverId,
       type: "HIGH_MEMORY",
       severity: "warning",
-      message: `Memory usage is ${system.memory_percent.toFixed(2)}%`,
+      message: `Memory usaged is ${system.memory_percent.toFixed(2)}%`,
+    });
+  }
+
+  if (system.disk_used_gb > 50) {
+    await createEvent({
+      serverId,
+      type: "disk_full",
+      severity: "warning",
+      message: `disk usages is ${system.disk_used_gb.toFixed(2)}%`,
     });
   }
 

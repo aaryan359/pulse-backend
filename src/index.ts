@@ -16,8 +16,11 @@ import apiRoute from "./routes/apikey.routes";
 import agentRoute from "./routes/agent.routes";
 import statsRoute from "./routes/stats.route";
 
-import { initWebSocket } from "./ws";
+
 import eventRoute from "./routes/event.routes";
+
+import terminalRoutes from "./routes/terminal.routes";
+import { initWS } from "./ws";
 
 const app: Application = express();
 
@@ -85,8 +88,7 @@ app.use("/api/v1/apikey", apiRoute);
 app.use("/api/v1/agent", agentRoute);
 app.use("/api/v1/stats", statsRoute);
 app.use("/api/v1/events", eventRoute);
-
-
+app.use("/api/v1/terminal", terminalRoutes);
 
 /* -------------------- 404 -------------------- */
 app.use((_req: Request, res: Response) => {
@@ -111,7 +113,8 @@ const PORT = Number(process.env.PORT) || 3000;
 const httpServer = http.createServer(app);
 
 //INIT WEBSOCKET HERE
-initWebSocket(httpServer);
+export const realtimeWS = initWS(httpServer);
+
 
 httpServer.listen(PORT, () => {
   console.log(` HTTP + WS server running on port ${PORT}`);

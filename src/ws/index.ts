@@ -1,70 +1,39 @@
-import { WebSocketServer, WebSocket } from "ws";
+// ws/index.ts
 import http from "http";
+import { initRealtimeWSS } from "./realtime";
+import { initTerminalWSS } from "./terminal";
+import { initAgentWSS } from "./agent";
 
-type Client = {
-  socket: WebSocket;
-  serverId?: number;
-};
+export function initWS(server: http.Server) {
+   const realtime = initRealtimeWSS();
+  const terminalWSS = initTerminalWSS();
+  const agentWSS = initAgentWSS(); 
 
-const clients = new Set<Client>();
+  server.on("upgrade", (req, socket, head) => {
+    const url = req.url || "";
 
-let wsInstance: { broadcastSnapshot: (serverId: number, payload: any) => void; } | null = null;
+    if (url.startsWith("/ws/realtime")) {
+      realtime.wss.handleUpgrade(req, socket, head, (ws) => {
+        realtime.wss.emit("connection", ws, req);
+      });
+      return;
+    }
 
-export const initWebSocket = (server: http.Server) => {
-      if (wsInstance) {
-        return wsInstance; 
-      }
+    if (url.startsWith("/ws/terminal")) {
+      terminalWSS.handleUpgrade(req, socket, head, (ws) => {
+        terminalWSS.emit("connection", ws, req);
+      });
+      return;
+    }
 
-  const wss = new WebSocketServer({ server });
+    if (url.startsWith("/ws/agent")) {
+        
+      agentWSS.handleUpgrade(req, socket, head, (ws) => {
+        agentWSS.emit("connection", ws, req);
+      });
+      return;
+    }
 
-  wss.on("connection", (socket) => {
-    const client: Client = { socket };
-    clients.add(client);
-
-    console.log(" WS client connected");
-
-    socket.on("message", (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-
-        if (message.type === "SUBSCRIBE_SERVER") {
-          client.serverId = Number(message.serverId);
-        }
-      } catch {
-        console.error("Invalid WS message");
-      }
-    });
-
-    socket.on("close", () => {
-      clients.delete(client);
-      console.log("WS client disconnected");
-    });
+    socket.destroy();
   });
-
-  wsInstance = {
-    broadcastSnapshot(serverId: number, payload: any) {
-      for (const client of clients) {
-        if (
-          client.serverId === serverId &&
-          client.socket.readyState === WebSocket.OPEN
-        ) {
-          client.socket.send(
-            JSON.stringify({
-              type: "SERVER_SNAPSHOT",
-              data: payload,
-            })
-          );
-        }
-      }
-    },
-  };
-
-  return wsInstance;
-};
-
-export const getWebSocket = () => {
-  if (!wsInstance) {
-    throw new Error("WebSocket not initialized");
-  }
-  return wsInstance;
-};
+}

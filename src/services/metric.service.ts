@@ -13,7 +13,7 @@ export async function storeAggregatedMetric(
 {
 
 
-  console.log(" coming in the metric server",snapshot)
+  
   const bucketStart = get2MinuteBucket(now);
   const bucketEnd = new Date(bucketStart.getTime() + 2 * 60 * 1000);
 
@@ -28,7 +28,6 @@ export async function storeAggregatedMetric(
   if (exists) return;
 
 
-  console.log(" already not exist server metric",snapshot)
   
   await prisma.serverMetric.create({
     data: {
